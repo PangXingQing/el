@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 右侧下方：带地址栏和缩放按钮的网页浏览器 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:orientation="vertical">
+
+    <!-- 地址栏 + 网页缩放 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#F7F7F7"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="4dp">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/btn_browser_back"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/bg_icon_ripple"
+            android:contentDescription="后退"
+            android:padding="5dp"
+            android:src="@android:drawable/ic_media_previous" />
+
+        <EditText
+            android:id="@+id/et_browser_url"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="https://www.etymonline.com/search?q=..."
+            android:imeOptions="actionGo"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:textColor="#333333"
+            android:textColorHint="#AAAAAA"
+            android:textSize="12sp" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/btn_browser_refresh"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_icon_ripple"
+            android:contentDescription="刷新"
+            android:padding="5dp"
+            android:src="@android:drawable/ic_menu_rotate" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/btn_browser_go"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_icon_ripple"
+            android:contentDescription="前往"
+            android:padding="5dp"
+            android:src="@android:drawable/ic_menu_send" />
+
+        <!-- 网页缩放：A- / 百分比 / A+ -->
+        <TextView
+            android:id="@+id/btn_browser_zoom_out"
+            android:layout_width="30dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_btn_secondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="A−"
+            android:textColor="#555555"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_browser_zoom"
+            android:layout_width="34dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="100%"
+            android:textColor="#888888"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/btn_browser_zoom_in"
+            android:layout_width="30dp"
+            android:layout_height="28dp"
+            android:background="@drawable/bg_btn_secondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="A+"
+            android:textColor="#555555"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/browser_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:max="100"
+        android:visibility="gone" />
+
+    <WebView
+        android:id="@+id/web_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>

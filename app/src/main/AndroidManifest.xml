@@ -34,7 +34,8 @@
             android:name=".reader.ReaderActivity"
             android:screenOrientation="landscape"
             android:exported="true"
-            android:theme="@style/Theme.EnglishStudyPXQ" />
+            android:theme="@style/Theme.EnglishStudyPXQ"
+            android:windowSoftInputMode="adjustResize" />
 
     </application>
 

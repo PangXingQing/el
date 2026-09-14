@@ -1,0 +1,54 @@
+IPA 音素发音音频 —— 来源与授权说明
+=====================================
+
+这些 .ogg 文件是单个音素（phoneme）的录音，用于点击音素标签时的发声。
+它们**不是**用 TTS 合成的：TTS 读不出 IPA 符号（如 ɒ、ʃ、θ），必须用真实录音。
+
+来源：Wikimedia Commons（维基共享资源）的 IPA 音素录音
+取用方式：https://commons.wikimedia.org/wiki/Special:FilePath/<原始文件名>
+说明：Commons 上的文件多为 CC BY-SA / CC0 授权，可免费使用，
+      但若用于公开发布，请按各文件页面标注的作者与协议进行署名。
+
+本地文件 ↔ Commons 原始文件名对照
+-------------------------------------
+p.ogg        <- Voiceless bilabial plosive.ogg          /p/
+b.ogg        <- Voiced bilabial plosive.ogg             /b/
+t.ogg        <- Voiceless alveolar plosive.ogg          /t/
+d.ogg        <- Voiced alveolar plosive.ogg             /d/
+k.ogg        <- Voiceless velar plosive.ogg             /k/
+g.ogg        <- Voiced velar plosive.ogg                /g/
+f.ogg        <- Voiceless labiodental fricative.ogg     /f/
+v.ogg        <- Voiced labiodental fricative.ogg        /v/
+th.ogg       <- Voiceless dental fricative.ogg          /θ/
+dh.ogg       <- Voiced dental fricative.ogg             /ð/
+s.ogg        <- Voiceless alveolar fricative.ogg        /s/
+z.ogg        <- Voiced alveolar sibilant.ogg            /z/
+sh.ogg       <- Voiceless postalveolar fricative.ogg    /ʃ/
+zh.ogg       <- Voiced postalveolar fricative.ogg       /ʒ/
+h.ogg        <- Voiceless glottal fricative.ogg         /h/
+tch.ogg      <- Voiceless palato-alveolar affricate.ogg /tʃ/
+dj.ogg       <- Voiced postalveolar affricate.ogg       /dʒ/
+m.ogg        <- Bilabial nasal.ogg                      /m/
+n.ogg        <- Alveolar nasal.ogg                      /n/
+ng.ogg       <- Nasal velar.ogg                         /ŋ/
+l.ogg        <- Alveolar lateral approximant.ogg        /l/
+r.ogg        <- Voiced alveolar approximant.ogg         /r/
+y.ogg        <- Palatal approximant.ogg                 /j/
+w.ogg        <- Voiced labio-velar approximant.ogg      /w/
+
+i_long.ogg   <- Close front unrounded vowel.ogg         /iː/
+i_short.ogg  <- Near-close near-front unrounded vowel.ogg /ɪ/
+e.ogg        <- Close-mid front unrounded vowel.ogg     /e/
+ae.ogg       <- Near-open front unrounded vowel.ogg     /æ/
+a_long.ogg   <- Open back unrounded vowel.ogg           /ɑː/ 和 /ɑ/
+o_short.ogg  <- Open back rounded vowel.ogg             /ɒ/
+o_long.ogg   <- Open-mid back rounded vowel.ogg         /ɔː/
+u_short.ogg  <- Near-close near-back rounded vowel.ogg  /ʊ/
+u_long.ogg   <- Close back rounded vowel.ogg            /uː/
+uh.ogg       <- Open-mid back unrounded vowel.ogg       /ʌ/
+er_long.ogg  <- Open-mid central unrounded vowel.ogg    /ɜː/
+schwa.ogg    <- Mid-central vowel.ogg                   /ə/
+
+以下音素没有对应的独立录音，点击时回退为朗读例词：
+/i/（happy 的尾音）、/ɝ/、/ɚ/（美音卷舌元音）以及全部双元音
+（/eɪ/ /aɪ/ /ɔɪ/ /aʊ/ /əʊ/ /oʊ/ /ɪə/ /eə/ /ʊə/）。

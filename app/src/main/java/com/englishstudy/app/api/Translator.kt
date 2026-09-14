@@ -1,6 +1,8 @@
 package com.englishstudy.app.api
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.BufferedReader
@@ -9,17 +11,22 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 翻译结果
  */
 data class TranslationResult(
-    val original: String,       // 原文
-    val translation: String,    // 翻译
-    val phonetic: String = "",  // 音标
-    val from: String = "en",    // 源语言
-    val to: String = "zh"       // 目标语言
-)
+    val original: String,          // 原文
+    val translation: String,       // 翻译
+    val phoneticUk: String = "",   // 英式音标（仅单个单词才有）
+    val phoneticUs: String = "",   // 美式音标（仅单个单词才有）
+    val from: String = "en",       // 源语言
+    val to: String = "zh"          // 目标语言
+) {
+    /** 是否拿到了音标 */
+    val hasPhonetic: Boolean get() = phoneticUk.isNotBlank() || phoneticUs.isNotBlank()
+}
 
 /**
  * 翻译服务接口 - 使用国内 API
@@ -33,15 +40,18 @@ interface Translator {
 }
 
 /**
- * 百度翻译实现（使用公开 API）
+ * 在线翻译实现（使用免 API Key 的公开接口）
  *
- * 使用百度翻译的 /sug 接口进行单词查询
- * 使用 /transapi 进行句子翻译
- * 无需 API Key，使用公开接口
+ * - 释义：百度 /sug 接口（注意：它**不返回音标**）
+ * - 音标：有道 jsonapi（仅对单个单词查询，返回英美两套 IPA）
+ * - 整句：MyMemory 机器翻译
  */
 class BaiduTranslator : Translator {
 
-    override val name: String = "百度翻译"
+    override val name: String = "英语学习翻译"
+
+    /** 音标缓存：同一个单词重复查询时不再请求网络 */
+    private val phoneticCache = ConcurrentHashMap<String, Pair<String, String>>()
 
     override suspend fun translate(text: String): TranslationResult = withContext(Dispatchers.IO) {
         val trimmed = text.trim()
@@ -49,18 +59,49 @@ class BaiduTranslator : Translator {
             return@withContext TranslationResult(trimmed, "")
         }
 
-        try {
-            // 尝试使用 sug 接口（适合单词/短语）
-            val sugResult = querySugApi(trimmed)
-            if (sugResult != null) {
-                return@withContext sugResult
+        // 单词：音标与释义并行请求，避免多等一轮网络
+        if (SINGLE_WORD.matches(trimmed)) {
+            val (meaning, phonetics) = coroutineScope {
+                val meaningJob = async {
+                    runCatching { querySugApi(trimmed) }.getOrNull()
+                }
+                val phoneticJob = async { queryPhonetics(trimmed) }
+                meaningJob.await() to phoneticJob.await()
+            }
+            val (uk, us) = phonetics
+
+            if (meaning != null) {
+                return@withContext meaning.copy(phoneticUk = uk, phoneticUs = us)
             }
 
-            // 如果是长句，使用完整翻译接口
-            queryTranslateApi(trimmed)
-        } catch (e: Exception) {
-            TranslationResult(trimmed, "翻译失败: ${e.message ?: "网络错误"}")
+            // 百度查不到的生僻词，退回机器翻译，但音标照样带上
+            val fallback = runCatching { queryMyMemoryApi(trimmed) }.getOrNull()
+            if (fallback != null) {
+                return@withContext fallback.copy(phoneticUk = uk, phoneticUs = us)
+            }
+            return@withContext TranslationResult(
+                original = trimmed,
+                translation = "翻译失败，请检查网络后重试",
+                phoneticUk = uk,
+                phoneticUs = us
+            )
         }
+
+        // 短语 / 整句：不带音标
+        val sugResult = runCatching { querySugApi(trimmed) }.getOrNull()
+        if (sugResult != null) {
+            return@withContext sugResult
+        }
+
+        // 百度 sug 对整句返回的是空数据（errno=0 但 data 为空），
+        // 百度 transapi 现在必须有 token/sign、有道 sug 已下线，
+        // 所以改走可用的免密钥机器翻译接口。
+        val sentenceResult = runCatching { queryMyMemoryApi(trimmed) }.getOrNull()
+        if (sentenceResult != null) {
+            return@withContext sentenceResult
+        }
+
+        TranslationResult(trimmed, "翻译失败，请检查网络后重试")
     }
 
     /**
@@ -110,22 +151,17 @@ class BaiduTranslator : Translator {
                     it.optString("k", "").lowercase() == original.lowercase()
                 } ?: data.getJSONObject(0)
 
-            val key = bestMatch.optString("k", "")
             val value = bestMatch.optString("v", "")
 
-            // 尝试提取音标（百度结果中可能包含音标）
-            val phonetic = extractPhonetic(value)
-
-            // 清理翻译文本（去掉音标等元信息）
+            // 注意：百度 /sug 的释义文本里并没有音标，
+            // 音标由 queryPhonetic() 从有道词典单独获取。
             val cleanTranslation = value
-                .replace(Regex("""[医]|美|英"""), "")
-                .replace(Regex("""/[^/]+/"""), "")
+                .replace(Regex("""【[^】]*】"""), "")
                 .trim()
 
             return TranslationResult(
                 original = original,
-                translation = cleanTranslation.ifBlank { value },
-                phonetic = phonetic
+                translation = cleanTranslation.ifBlank { value }
             )
         } catch (e: Exception) {
             return null
@@ -133,96 +169,108 @@ class BaiduTranslator : Translator {
     }
 
     /**
-     * 百度翻译完整接口 - 适合句子
-     * POST https://fanyi.baidu.com/transapi
+     * 句子翻译 - MyMemory 机器翻译接口（免 API Key）
+     *
+     * GET https://api.mymemory.translated.net/get?q=xxx&langpair=en%7Czh-CN
+     * 返回：{"responseData":{"translatedText":"..."},"responseStatus":200}
+     *
+     * 说明：匿名调用有每日额度限制（约 5000 词/天）。
+     * 如需稳定用于生产，建议换成带密钥的翻译服务（如百度翻译开放平台/有道智云）。
      */
-    private fun queryTranslateApi(text: String): TranslationResult {
-        val url = URL("https://fanyi.baidu.com/transapi")
+    private fun queryMyMemoryApi(text: String): TranslationResult? {
+        val encoded = URLEncoder.encode(text, "UTF-8")
+        val url = URL("https://api.mymemory.translated.net/get?q=$encoded&langpair=en%7Czh-CN")
         val conn = url.openConnection() as HttpURLConnection
         conn.apply {
-            requestMethod = "POST"
+            requestMethod = "GET"
             connectTimeout = 8000
             readTimeout = 8000
-            doOutput = true
-            setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-            setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-            setRequestProperty("Referer", "https://fanyi.baidu.com/")
+            setRequestProperty("User-Agent", "Mozilla/5.0")
         }
-
-        val postData = "from=en&to=zh&query=${URLEncoder.encode(text, "UTF-8")}&source=txt&transtype=translang"
-        OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(postData) }
 
         val responseCode = conn.responseCode
         if (responseCode != 200) {
             conn.disconnect()
-            return TranslationResult(text, "服务暂时不可用")
+            return null
         }
 
         val response = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8"))
             .readText()
         conn.disconnect()
 
-        return parseTransApiResponse(response, text)
-    }
+        return try {
+            val root = org.json.JSONObject(response)
+            val translated = root.optJSONObject("responseData")
+                ?.optString("translatedText", "")
+                .orEmpty()
+                .trim()
 
-    private fun parseTransApiResponse(json: String, original: String): TranslationResult {
-        try {
-            val root = org.json.JSONObject(json)
-            val transResult = root.optJSONArray("data")
-            if (transResult != null && transResult.length() > 0) {
-                val dst = transResult.getJSONObject(0).optString("dst", "")
-                if (dst.isNotBlank()) {
-                    return TranslationResult(original, dst)
-                }
+            // 额度用尽时接口会把提示语直接塞进 translatedText
+            if (translated.isBlank() || translated.contains("MYMEMORY WARNING", ignoreCase = true)) {
+                null
+            } else {
+                TranslationResult(original = text, translation = translated)
             }
-        } catch (_: Exception) { }
-
-        // 如果 transapi 失败，尝试另一个公开接口
-        return queryYoudaoSugApi(original)
+        } catch (e: Exception) {
+            null
+        }
     }
+
+    // ===== 音标（只对单个单词查询） =====
 
     /**
-     * 备用：有道翻译 sug 接口
-     * POST https://dict.youdao.com/sug
+     * 取单词音标，返回 (英式, 美式)。
+     *
+     * 有道词典 jsonapi 返回英美两套 IPA：
+     * {"ec":{"word":[{"usphone":"ˌɑːpərˈtuːnəti","ukphone":"ˌɒpəˈtjuːnəti"}]}}
+     * 该接口从真机实测可用（约 0.3s）；免费词典 api.dictionaryapi.dev 在国内网络
+     * 连不通，所以不采用。
      */
-    private fun queryYoudaoSugApi(text: String): TranslationResult {
-        try {
-            val url = URL("https://dict.youdao.com/sug")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.apply {
-                requestMethod = "POST"
-                connectTimeout = 5000
-                readTimeout = 5000
-                doOutput = true
-                setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                setRequestProperty("User-Agent", "Mozilla/5.0")
-                setRequestProperty("Referer", "https://dict.youdao.com/")
-            }
+    private fun queryPhonetics(word: String): Pair<String, String> {
+        val key = word.lowercase()
+        phoneticCache[key]?.let { return it }
 
-            val postData = "q=${URLEncoder.encode(text, "UTF-8")}"
-            OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(postData) }
-
-            val response = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8"))
-                .readText()
-            conn.disconnect()
-
-            val root = org.json.JSONObject(response)
-            val data = root.optJSONArray("data")
-            if (data != null && data.length() > 0) {
-                val entry = data.getJSONObject(0)
-                val explains = entry.optString("explain", "")
-                if (explains.isNotBlank()) {
-                    return TranslationResult(text, explains)
-                }
-            }
-        } catch (_: Exception) { }
-
-        return TranslationResult(text, "暂无翻译结果")
+        val result = runCatching { fetchYoudaoPhonetics(word) }.getOrDefault("" to "")
+        if (result.first.isNotBlank() || result.second.isNotBlank()) {
+            phoneticCache[key] = result
+        }
+        return result
     }
 
-    /** 从翻译结果中提取音标 */
-    private fun extractPhonetic(text: String): String {
-        val match = Regex("""/[^/]+/""").find(text)
-        return match?.value ?: ""
+    private fun fetchYoudaoPhonetics(word: String): Pair<String, String> {
+        val url = URL("https://dict.youdao.com/jsonapi?q=${URLEncoder.encode(word, "UTF-8")}")
+        val conn = url.openConnection() as HttpURLConnection
+        conn.apply {
+            requestMethod = "GET"
+            connectTimeout = 6000
+            readTimeout = 6000
+            setRequestProperty("User-Agent", "Mozilla/5.0")
+        }
+
+        if (conn.responseCode != 200) {
+            conn.disconnect()
+            return "" to ""
+        }
+
+        val response = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).readText()
+        conn.disconnect()
+
+        val words = org.json.JSONObject(response)
+            .optJSONObject("ec")
+            ?.optJSONArray("word")
+            ?: return "" to ""
+        if (words.length() == 0) return "" to ""
+
+        val entry = words.getJSONObject(0)
+        return entry.optString("ukphone", "").trim() to
+            entry.optString("usphone", "").trim()
+    }
+
+    private companion object {
+        /**
+         * 单个英文单词（可含连字符/撇号）。
+         * 只有命中的文本才去查音标，短语和整句都跳过。
+         */
+        val SINGLE_WORD = Regex("""^[A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F'-]*$""")
     }
 }

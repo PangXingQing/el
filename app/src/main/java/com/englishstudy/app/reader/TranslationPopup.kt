@@ -41,10 +41,14 @@ class TranslationPopup(
     private var popupView: View? = null
     private var tvOriginal: TextView? = null
     private var tvTranslation: TextView? = null
-    private var tvPhonetic: TextView? = null
+    private var ipaCard: IpaCard? = null
     private var btnSpeak: AppCompatImageView? = null
     private var btnClose: AppCompatImageView? = null
     private var loadingView: View? = null
+
+    // 记录锚点，内容变高后需要重新定位
+    private var anchorView: View? = null
+    private var anchorBounds: Rect = Rect()
 
     private val translator: Translator = BaiduTranslator()
     private val tts: AppTtsManager = AppTtsManager.getInstance()
@@ -83,11 +87,17 @@ class TranslationPopup(
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.popup_translation, null)
 
+        this.anchorView = anchorView
+        this.anchorBounds = Rect(anchorBounds)
+
         // 缓存视图引用
         popupView = view
         tvOriginal = view.findViewById(R.id.tv_popup_original)
         tvTranslation = view.findViewById(R.id.tv_popup_translation)
-        tvPhonetic = view.findViewById(R.id.tv_popup_phonetic)
+        ipaCard = IpaCard(view.findViewById(R.id.ipa_card)).also {
+            // 点音素展开要领后卡片会变高，重新调整浮窗尺寸与位置
+            it.onContentChanged = { repositionIfNeeded() }
+        }
         btnSpeak = view.findViewById(R.id.btn_popup_speak)
         btnClose = view.findViewById(R.id.btn_popup_close)
         loadingView = view.findViewById(R.id.layout_popup_loading)
@@ -111,40 +121,27 @@ class TranslationPopup(
         ).apply {
             isOutsideTouchable = true
             isFocusable = true
+            isClippingEnabled = false
             setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
             animationStyle = android.R.style.Animation_Dialog
             elevation = 16f
         }
 
-        // 计算弹窗位置
+        // 计算弹窗位置（选区坐标 → 屏幕坐标，并夹取到系统栏以外的可见区域）
         val displayMetrics = context.resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        val screenHeight = displayMetrics.heightPixels
-        val density = displayMetrics.density
-
-        // 测量弹窗宽高
-        val maxWidth = (POPUP_MAX_WIDTH_DP * density).toInt()
+        val maxWidth = (POPUP_MAX_WIDTH_DP * displayMetrics.density).toInt()
         view.measure(
             View.MeasureSpec.makeMeasureSpec(maxWidth, View.MeasureSpec.AT_MOST),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        val popupW = view.measuredWidth.coerceAtMost(maxWidth)
-        val popupH = view.measuredHeight
-        val margin = (POPUP_MARGIN_DP * density).toInt()
-
-        // 计算位置
-        var x = anchorBounds.centerX() - popupW / 2
-        var y = anchorBounds.bottom + margin
-
-        // 下方空间不够则显示在上方
-        if (y + popupH > screenHeight) {
-            y = anchorBounds.top - popupH - margin
-        }
-        // 上下都不够则居中
-        if (y < margin) {
-            y = screenHeight / 2 - popupH / 2
-        }
-        x = x.coerceIn(margin, screenWidth - popupW - margin)
+        val margin = (POPUP_MARGIN_DP * displayMetrics.density).toInt()
+        val (x, y) = computePopupPosition(
+            anchorView = anchorView,
+            anchorBounds = anchorBounds,
+            popupWidth = view.measuredWidth.coerceAtMost(maxWidth),
+            popupHeight = view.measuredHeight,
+            margin = margin
+        )
 
         // 显示弹窗（使用锚点 View 来确定窗口位置）
         popupWindow?.showAtLocation(anchorView, Gravity.NO_GRAVITY, x, y)
@@ -158,18 +155,45 @@ class TranslationPopup(
     private fun showLoading() {
         loadingView?.visibility = View.VISIBLE
         tvTranslation?.text = ""
-        tvPhonetic?.text = ""
+        ipaCard?.hide()
     }
 
     /** 更新翻译内容 */
     private fun updateContent(result: TranslationResult) {
         loadingView?.visibility = View.GONE
         tvTranslation?.text = result.translation
-        tvPhonetic?.text = if (result.phonetic.isNotBlank()) {
-            "音标 ${result.phonetic}"
-        } else {
-            ""
-        }
+        ipaCard?.show(result.phoneticUk, result.phoneticUs)
+
+        // 音标卡出现后弹窗会变高，重新夹一次位置，避免跑出屏幕
+        repositionIfNeeded()
+    }
+
+    /** 内容变高后重新校正弹窗位置 */
+    private fun repositionIfNeeded() {
+        val view = popupView ?: return
+        val popup = popupWindow ?: return
+        val anchor = anchorView ?: return
+
+        val displayMetrics = context.resources.displayMetrics
+        val maxWidth = (POPUP_MAX_WIDTH_DP * displayMetrics.density).toInt()
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(maxWidth, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val margin = (POPUP_MARGIN_DP * displayMetrics.density).toInt()
+        val (x, y) = computePopupPosition(
+            anchorView = anchor,
+            anchorBounds = anchorBounds,
+            popupWidth = view.measuredWidth.coerceAtMost(maxWidth),
+            popupHeight = view.measuredHeight,
+            margin = margin
+        )
+        popup.update(
+            x,
+            y,
+            view.measuredWidth.coerceAtMost(maxWidth),
+            view.measuredHeight
+        )
     }
 
     /** 朗读当前文本 */
@@ -184,6 +208,8 @@ class TranslationPopup(
         popupWindow?.dismiss()
         popupWindow = null
         popupView = null
+        ipaCard = null
+        anchorView = null
     }
 
     /** 弹窗是否正在显示 */

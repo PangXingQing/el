@@ -36,6 +36,10 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    androidResources {
+        // 音素发音音频需要保持未压缩，MediaPlayer 才能直接用 AssetFileDescriptor 播放
+        noCompress += listOf("ogg")
+    }
 }
 
 dependencies {

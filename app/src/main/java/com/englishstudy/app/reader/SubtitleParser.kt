@@ -11,43 +11,80 @@ interface SubtitleParser {
     fun supports(fileName: String): Boolean
 }
 
+// ===== 字幕文本清洗 =====
+
+/** ASS/SSA 样式覆盖标签，例如 {\fs16\an2\b0} （注意 \} 必须转义，ICU 正则不接受未转义的 }） */
+private val ASS_STYLE_TAG = Regex("""\{[^{}]*\}""")
+
+/** 常见 HTML 标签，例如 <i> </i> <font color="#fff"> */
+private val HTML_TAG = Regex("""</?[a-zA-Z][^>]*>""")
+
+/** ASS 的换行转义 \N \n */
+private val ASS_LINE_BREAK = Regex("""\\[Nn]""")
+
+/** 中日韩文字（用于识别双语字幕里的译文行） */
+private val CJK_CHAR = Regex("""[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3040-\u30FF\uAC00-\uD7AF]""")
+
+/**
+ * 去掉字幕行里的样式标签等非正文内容。
+ * 双语字幕常见形如 `{\fs16\an2\b0}我们说到哪了?`，这些标签不该显示给读者。
+ */
+internal fun cleanSubtitleLine(raw: String): String =
+    raw.replace(ASS_STYLE_TAG, "")
+        .replace(HTML_TAG, "")
+        .replace(ASS_LINE_BREAK, " ")
+        .replace("\uFEFF", "")
+        .trim()
+
+/**
+ * 拆分双语字幕。
+ *
+ * 同一时间轴上的多行里，含中日韩文字的行视为译文，其余视为原文；
+ * 若各行属于同一种文字（单语字幕），则全部作为原文，译文留空。
+ */
+internal fun splitBilingual(lines: List<String>): Pair<String, String> {
+    val cjkLines = lines.filter { CJK_CHAR.containsMatchIn(it) }
+    val otherLines = lines.filterNot { CJK_CHAR.containsMatchIn(it) }
+
+    return if (cjkLines.isNotEmpty() && otherLines.isNotEmpty()) {
+        otherLines.joinToString("\n") to cjkLines.joinToString("\n")
+    } else {
+        lines.joinToString("\n") to ""
+    }
+}
+
 /**
  * TXT 文本解析器
  * - 按空行分段，每段作为一个条目
- * - 支持换行合并
+ * - 段内保留原始换行，并自动拆分双语
  */
 class TxtParser : SubtitleParser {
     override fun parse(content: String): List<SubtitleEntry> {
         val entries = mutableListOf<SubtitleEntry>()
-        val reader = BufferedReader(StringReader(content))
-        val currentParagraph = StringBuilder()
+        val reader = BufferedReader(StringReader(content.removePrefix("\uFEFF")))
+        val buffer = mutableListOf<String>()
         var index = 0
 
+        fun flush() {
+            val lines = buffer.map { cleanSubtitleLine(it) }.filter { it.isNotBlank() }
+            buffer.clear()
+            if (lines.isEmpty()) return
+
+            val (text, translation) = splitBilingual(lines)
+            entries.add(SubtitleEntry(text = text, translation = translation, index = index++))
+        }
+
         reader.forEachLine { line ->
-            if (line.isBlank()) {
-                // 空行表示段落结束
-                val text = currentParagraph.toString().trim()
-                if (text.isNotBlank()) {
-                    entries.add(SubtitleEntry(text = text, index = index++))
-                }
-                currentParagraph.clear()
-            } else {
-                if (currentParagraph.isNotEmpty()) currentParagraph.append(" ")
-                currentParagraph.append(line.trim())
-            }
+            if (line.isBlank()) flush() else buffer.add(line)
         }
+        flush()
 
-        // 处理最后一段
-        val lastText = currentParagraph.toString().trim()
-        if (lastText.isNotBlank()) {
-            entries.add(SubtitleEntry(text = lastText, index = index))
-        }
-
-        // 如果没有任何分段，则将所有非空行作为一个段落
+        // 如果没有任何分段，则将所有非空行作为一个条目
         if (entries.isEmpty()) {
-            val lines = content.lines().filter { it.isNotBlank() }
+            val lines = content.lines().map { cleanSubtitleLine(it) }.filter { it.isNotBlank() }
             if (lines.isNotEmpty()) {
-                entries.add(SubtitleEntry(text = lines.joinToString(" "), index = 0))
+                val (text, translation) = splitBilingual(lines)
+                entries.add(SubtitleEntry(text = text, translation = translation, index = 0))
             }
         }
 
@@ -69,6 +106,8 @@ class TxtParser : SubtitleParser {
  * 2
  * 00:00:25,000 --> 00:00:29,000
  * Another subtitle
+ *
+ * 双语字幕同一时间轴会有两行（原文 + 译文），会被自动拆分。
  */
 class SrtParser : SubtitleParser {
 
@@ -76,7 +115,7 @@ class SrtParser : SubtitleParser {
 
     override fun parse(content: String): List<SubtitleEntry> {
         val entries = mutableListOf<SubtitleEntry>()
-        val lines = content.lines()
+        val lines = content.removePrefix("\uFEFF").lines()
         var i = 0
 
         while (i < lines.size) {
@@ -107,21 +146,25 @@ class SrtParser : SubtitleParser {
                             )
                             i++
 
-                            // 文本行（可能有多行）
+                            // 文本行（可能有多行，双语字幕通常是两行）
                             val textLines = mutableListOf<String>()
                             while (i < lines.size && lines[i].trim().isNotEmpty()) {
-                                textLines.add(lines[i].trim())
+                                textLines.add(cleanSubtitleLine(lines[i]))
                                 i++
                             }
 
-                            val text = textLines.joinToString(" ")
-                            if (text.isNotBlank()) {
-                                entries.add(SubtitleEntry(
-                                    text = text,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    index = index
-                                ))
+                            val cleaned = textLines.filter { it.isNotBlank() }
+                            if (cleaned.isNotEmpty()) {
+                                val (text, translation) = splitBilingual(cleaned)
+                                entries.add(
+                                    SubtitleEntry(
+                                        text = text,
+                                        translation = translation,
+                                        startTime = startTime,
+                                        endTime = endTime,
+                                        index = index
+                                    )
+                                )
                             }
                         }
                     }

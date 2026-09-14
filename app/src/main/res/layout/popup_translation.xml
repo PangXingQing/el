@@ -57,15 +57,19 @@
         android:layout_height="1dp"
         android:background="#EEEEEE" />
 
-    <!-- 音标 -->
-    <TextView
-        android:id="@+id/tv_popup_phonetic"
+    <!-- 音标学习卡：英/美音标 + 音素拆分 + 发音要领 -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingHorizontal="12dp"
-        android:paddingTop="4dp"
-        android:textSize="14sp"
-        android:textColor="#999999" />
+        android:paddingTop="6dp">
+
+        <include
+            android:id="@+id/ipa_card"
+            layout="@layout/view_ipa_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </FrameLayout>
 
     <!-- 翻译内容 -->
     <TextView

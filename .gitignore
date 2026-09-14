@@ -55,3 +55,9 @@ local.properties
 
 # --- NDK ---
 .externalNativeBuild/
+
+# --- 本地构建缓存（Kotlin session 等）---
+.kotlin/
+
+# --- 本地测试素材（字幕文件等，不随仓库分发）---
+/test/

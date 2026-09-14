@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#FFFDF5">
+    android:background="#FFFDF5"
+    android:orientation="vertical">
 
     <!-- 工具栏 -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -28,62 +28,179 @@
         android:background="#F5F5F5"
         android:visibility="gone" />
 
-    <!-- 阅读器内容区域 -->
-    <FrameLayout
+    <!-- ===== 左右分栏（中间分隔条可拖动调宽度） ===== -->
+    <LinearLayout
+        android:id="@+id/split_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="16dp">
+        android:orientation="horizontal">
 
-        <com.englishstudy.app.reader.InteractiveReaderView
-            android:id="@+id/reader_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#FFFDF5"
-            android:visibility="gone" />
-
-        <!-- 空状态提示 -->
+        <!-- 左侧：阅读器 -->
         <LinearLayout
-            android:id="@+id/layout_empty_hint"
-            android:layout_width="match_parent"
+            android:id="@+id/left_pane"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:visibility="visible">
-            <TextView
-                android:layout_width="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <!-- 纵向滚动容器：字幕文件通常很长，必须能滚动才能读到后面的内容 -->
+                <ScrollView
+                    android:id="@+id/scroll_reader"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp"
+                    android:scrollbars="vertical"
+                    android:fadeScrollbars="false">
+
+                    <com.englishstudy.app.reader.InteractiveReaderView
+                        android:id="@+id/reader_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="#FFFDF5"
+                        android:visibility="gone" />
+                </ScrollView>
+
+                <!-- 空状态提示 -->
+                <LinearLayout
+                    android:id="@+id/layout_empty_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="visible">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📖"
+                        android:textSize="56sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="点击右下角按钮打开字幕文件"
+                        android:textColor="#999999"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="支持 TXT / SRT 格式 · 中间竖条可拖动调宽度"
+                        android:textColor="#CCCCCC"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <!-- 底部条：阅读字号缩放 + 打开文件 -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📖"
-                android:textSize="64sp" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="点击右下角按钮打开字幕文件"
-                android:textSize="16sp"
-                android:textColor="#999999"
-                android:layout_marginTop="16dp" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="支持 TXT / SRT 格式"
-                android:textSize="14sp"
-                android:textColor="#CCCCCC"
-                android:layout_marginTop="8dp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="12dp"
+                android:paddingVertical="6dp">
+
+                <TextView
+                    android:id="@+id/btn_reader_zoom_out"
+                    android:layout_width="40dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_btn_secondary"
+                    android:clickable="true"
+                    android:contentDescription="缩小阅读字号"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="A−"
+                    android:textColor="#555555"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_reader_zoom"
+                    android:layout_width="38dp"
+                    android:layout_height="34dp"
+                    android:gravity="center"
+                    android:text="22"
+                    android:textColor="#888888"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btn_reader_zoom_in"
+                    android:layout_width="40dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_btn_secondary"
+                    android:clickable="true"
+                    android:contentDescription="放大阅读字号"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="A+"
+                    android:textColor="#555555"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fab_open_file"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="打开文件"
+                    android:elevation="6dp"
+                    android:src="@drawable/ic_add"
+                    app:backgroundTint="#2196F3"
+                    app:tint="#FFFFFF" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
-    </FrameLayout>
+        <!-- 可拖动分隔条（宽度即手指可拖区域，留宽一点更好拖） -->
+        <View
+            android:id="@+id/split_divider"
+            android:layout_width="16dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_split_divider" />
 
-    <!-- FAB 打开文件按钮 -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_open_file"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
-        android:src="@drawable/ic_add"
-        android:contentDescription="打开文件"
-        android:elevation="6dp"
-        app:backgroundTint="#2196F3"
-        app:tint="#FFFFFF" />
+        <!-- 右侧：上=查询/翻译信息，下=网页浏览器 -->
+        <LinearLayout
+            android:id="@+id/right_pane"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#FFFFFF"
+            android:orientation="vertical">
+
+            <include
+                android:id="@+id/panel_lookup"
+                layout="@layout/panel_lookup"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1.15" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0" />
+
+            <include
+                android:id="@+id/panel_browser"
+                layout="@layout/panel_browser"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1.85" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
