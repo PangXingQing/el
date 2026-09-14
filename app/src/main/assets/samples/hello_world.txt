@@ -1,0 +1,37 @@
+Hello, welcome to English Study App!
+
+This is a sample text file for testing the reader feature.
+You can click on any word to see its translation.
+You can also long press to select a phrase or sentence.
+
+The app will show a floating popup with translation and pronunciation.
+All translations are powered by Baidu Translate API.
+Pronunciation uses the Android built-in Text-to-Speech engine.
+
+Let's start learning English!
+
+Common English Phrases:
+- How are you today?
+- I would like to learn English.
+- Could you help me with this sentence?
+- What time is it right now?
+- The weather is beautiful today.
+- I enjoy reading books in English.
+- Practice makes perfect.
+- Never give up on your dreams.
+
+English Idioms:
+1. Break the ice - to initiate conversation in a social setting
+2. Hit the nail on the head - to describe exactly what is causing a situation
+3. Once in a blue moon - something that happens very rarely
+4. When pigs fly - something that will never happen
+5. The ball is in your court - it's up to you to make the next decision
+
+Grammar Tips:
+The present perfect tense is used to describe past actions that have relevance to the present.
+For example: "I have lived in Beijing for five years" means I started living there five years ago and still live there now.
+
+The past simple tense is used for completed actions in the past.
+For example: "I visited Shanghai last year" means the visit is finished.
+
+Keep practicing every day and you will improve your English skills!

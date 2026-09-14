@@ -1,0 +1,59 @@
+1
+00:00:01,000 --> 00:00:04,500
+Good morning! How are you today?
+
+2
+00:00:05,000 --> 00:00:08,500
+Good morning! I'm doing great, thank you.
+
+3
+00:00:09,000 --> 00:00:12,000
+What would you like to study today?
+
+4
+00:00:12,500 --> 00:00:16,000
+I want to practice my English conversation skills.
+
+5
+00:00:16,500 --> 00:00:20,000
+That's a wonderful idea. Let's start with some greetings.
+
+6
+00:00:20,500 --> 00:00:24,000
+Hello, my name is John. Nice to meet you!
+
+7
+00:00:24,500 --> 00:00:28,000
+Hi John, I'm Lisa. The pleasure is all mine.
+
+8
+00:00:28,500 --> 00:00:33,000
+Could you tell me a little bit about yourself?
+
+9
+00:00:33,500 --> 00:00:38,000
+Sure! I'm from China and I work as a software engineer.
+
+10
+00:00:38,500 --> 00:00:42,000
+That's fascinating. How long have you been studying English?
+
+11
+00:00:42,500 --> 00:00:47,000
+I have been studying for about two years now.
+
+12
+00:00:47,500 --> 00:00:52,000
+Your English is very good! Keep up the great work.
+
+13
+00:00:52,500 --> 00:00:56,000
+Thank you so much! I will continue to practice every day.
+
+14
+00:00:56,500 --> 00:01:00,000
+Remember, consistency is the key to success.
+
+15
+00:01:00,500 --> 00:01:05,000
+I couldn't agree more. Practice makes perfect!

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_popup_translation"
+    android:elevation="8dp"
+    android:minWidth="200dp"
+    android:maxWidth="400dp">
+
+    <!-- 原文 + 操作按钮行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_popup_original"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="18sp"
+            android:textColor="#333333"
+            android:textStyle="bold"
+            android:maxLines="3"
+            android:ellipsize="end" />
+
+        <!-- 发音按钮 -->
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/btn_popup_speak"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_media_play"
+            android:contentDescription="朗读"
+            android:padding="6dp"
+            android:background="@drawable/bg_icon_ripple"
+            android:layout_marginStart="8dp" />
+
+        <!-- 关闭按钮 -->
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/btn_popup_close"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="关闭"
+            android:padding="4dp"
+            android:background="@drawable/bg_icon_ripple"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EEEEEE" />
+
+    <!-- 音标 -->
+    <TextView
+        android:id="@+id/tv_popup_phonetic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="4dp"
+        android:textSize="14sp"
+        android:textColor="#999999" />
+
+    <!-- 翻译内容 -->
+    <TextView
+        android:id="@+id/tv_popup_translation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textSize="16sp"
+        android:textColor="#555555"
+        android:minHeight="40dp" />
+
+    <!-- 加载中提示 -->
+    <LinearLayout
+        android:id="@+id/layout_popup_loading"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="翻译中..."
+            android:textSize="14sp"
+            android:textColor="#999999" />
+
+    </LinearLayout>
+
+</LinearLayout>

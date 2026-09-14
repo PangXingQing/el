@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFDF5">
+
+    <!-- 工具栏 -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#FFFFFF"
+        app:titleTextColor="#333333"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:elevation="2dp" />
+
+    <!-- 文件信息栏 -->
+    <TextView
+        android:id="@+id/tv_file_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:textSize="12sp"
+        android:textColor="#999999"
+        android:background="#F5F5F5"
+        android:visibility="gone" />
+
+    <!-- 阅读器内容区域 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp">
+
+        <com.englishstudy.app.reader.InteractiveReaderView
+            android:id="@+id/reader_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FFFDF5"
+            android:visibility="gone" />
+
+        <!-- 空状态提示 -->
+        <LinearLayout
+            android:id="@+id/layout_empty_hint"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="visible">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📖"
+                android:textSize="64sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="点击右下角按钮打开字幕文件"
+                android:textSize="16sp"
+                android:textColor="#999999"
+                android:layout_marginTop="16dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="支持 TXT / SRT 格式"
+                android:textSize="14sp"
+                android:textColor="#CCCCCC"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- FAB 打开文件按钮 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_open_file"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="打开文件"
+        android:elevation="6dp"
+        app:backgroundTint="#2196F3"
+        app:tint="#FFFFFF" />
+
+</LinearLayout>

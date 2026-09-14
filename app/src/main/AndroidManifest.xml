@@ -1,13 +1,25 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 网络权限（翻译 API 需要） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 文件读取权限（打开字幕文件需要） -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
     <application
+        android:name=".EnglishStudyApp"
         android:allowBackup="true"
         android:label="英语学习"
         android:supportsRtl="true"
         android:theme="@style/Theme.EnglishStudyPXQ"
+        android:usesCleartextTraffic="true"
         tools:targetApi="35">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -17,6 +29,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".reader.ReaderActivity"
+            android:screenOrientation="landscape"
+            android:exported="true"
+            android:theme="@style/Theme.EnglishStudyPXQ" />
+
     </application>
 
 </manifest>

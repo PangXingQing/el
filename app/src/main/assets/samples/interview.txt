@@ -1,0 +1,27 @@
+Interviewer: Welcome to our company. Thank you for coming today.
+
+Candidate: Thank you for having me. I'm very excited about this opportunity.
+
+Interviewer: Could you please introduce yourself briefly?
+
+Candidate: Of course. My name is Zhang Wei. I graduated from Peking University with a degree in Computer Science. I have five years of experience in software development.
+
+Interviewer: That's impressive. What programming languages are you proficient in?
+
+Candidate: I am proficient in Kotlin, Java, and Python. I also have experience with Android development and cloud computing technologies.
+
+Interviewer: Can you describe a challenging project you have worked on?
+
+Candidate: Certainly. Last year, I led a team to develop a mobile payment application. We faced many challenges, especially with security and performance optimization. We successfully launched the app with over one million users in the first month.
+
+Interviewer: That sounds like a great achievement. How do you handle pressure and tight deadlines?
+
+Candidate: I believe in proper planning and time management. I break down large tasks into smaller manageable pieces and prioritize them. I also communicate regularly with my team to ensure we are on track.
+
+Interviewer: Excellent. What are your career goals for the next five years?
+
+Candidate: I want to continue growing as a software engineer and eventually become a technical architect. I am also interested in mentoring junior developers and contributing to open source projects.
+
+Interviewer: We are very impressed with your background. We will be in touch soon.
+
+Candidate: Thank you very much. I look forward to hearing from you.
