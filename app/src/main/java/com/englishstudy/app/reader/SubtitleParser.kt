@@ -185,13 +185,20 @@ class SrtParser : SubtitleParser {
 }
 
 /**
- * 字幕解析器工厂
+ * 文件解析器工厂
+ *
+ * 只有 SRT 需要专用解析；其余一律按纯文本分段处理，
+ * 所以**任意文本文件都能打开**（.md / .log / .csv / 无扩展名都可以当素材）。
  */
 object SubtitleParserFactory {
     private val parsers = listOf(TxtParser(), SrtParser())
 
-    fun getParser(fileName: String): SubtitleParser? =
-        parsers.firstOrNull { it.supports(fileName) }
+    /** 没匹配到专用解析器时的兜底：按纯文本分段 */
+    private val fallback: SubtitleParser = TxtParser()
 
-    fun supportedExtensions(): List<String> = listOf("txt", "srt")
+    fun getParser(fileName: String): SubtitleParser =
+        parsers.firstOrNull { it.supports(fileName) } ?: fallback
+
+    /** 界面提示用：优先按格式解析的扩展名 */
+    fun preferredExtensions(): List<String> = listOf("srt", "txt")
 }

@@ -81,17 +81,18 @@
                         android:text="📖"
                         android:textSize="56sp" />
                     <TextView
+                        android:id="@+id/tv_empty_hint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="点击右下角按钮打开字幕文件"
+                        android:text="点击右下角按钮打开文本文件"
                         android:textColor="#999999"
                         android:textSize="16sp" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="支持 TXT / SRT 格式 · 中间竖条可拖动调宽度"
+                        android:text="支持 SRT / TXT 等任意文本文件 · 只列出词库里没有的生词"
                         android:textColor="#CCCCCC"
                         android:textSize="13sp" />
                 </LinearLayout>

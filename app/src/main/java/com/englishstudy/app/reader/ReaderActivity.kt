@@ -21,15 +21,22 @@ import com.englishstudy.app.R
 import com.englishstudy.app.databinding.ActivityReaderBinding
 import com.englishstudy.app.util.AppSettings
 import com.englishstudy.app.util.SampleFileExtractor
+import com.englishstudy.app.words.UnknownWord
+import com.englishstudy.app.words.WordExtractor
+import com.englishstudy.app.words.WordRepository
 import java.io.File
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 阅读器 Activity
  *
  * 界面分左右两栏，中间竖条可拖动调节宽度：
- * - 左侧：字幕阅读器（单击选词 / 长按选句）
- * - 右上：查询输入 + 翻译信息（原浮动窗内容）
+ * - 左侧：生词列表。打开文本文件后抽取其中所有单词，滤掉词库里已有的，
+ *         剩下的按出现次数排成列表（单击选词 / 长按选句）
+ * - 右上：查询输入 + 翻译信息（原浮动窗内容），另有「加入词库」按钮
  * - 右下：带地址栏的网页浏览器（etymology 词典）
  *
  * 选中文本后先弹出「查询 / 翻译」菜单：
@@ -84,6 +91,7 @@ class ReaderActivity : AppCompatActivity() {
         // 右侧上方：查询 + 翻译信息面板
         lookupPanel = LookupPanel(findViewById(R.id.panel_lookup), lifecycleScope).apply {
             onSubmit = { text -> lookup(text) }
+            onAddWord = { text -> addToWordDatabase(text) }
         }
 
         // 右侧下方：网页浏览器
@@ -294,7 +302,7 @@ class ReaderActivity : AppCompatActivity() {
         // 检查 Documents 中是否有示例文件
         val sampleDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
             ?: filesDir
-        val sampleFiles = sampleDir.listFiles { f -> f.extension in listOf("txt", "srt") }
+        val sampleFiles = sampleDir.listFiles { f -> f.extension.lowercase() in TEXT_FILE_EXTENSIONS }
         if (!sampleFiles.isNullOrEmpty()) {
             popupMenu.menu.add(0, 3, 0, "打开示例文件 (Documents)")
         }
@@ -346,7 +354,7 @@ class ReaderActivity : AppCompatActivity() {
         val docsDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
             ?: filesDir
         val files = docsDir.listFiles { f ->
-            f.isFile && f.extension in listOf("txt", "srt")
+            f.isFile && f.extension.lowercase() in TEXT_FILE_EXTENSIONS
         } ?: return
 
         if (files.isEmpty()) {
@@ -387,55 +395,94 @@ class ReaderActivity : AppCompatActivity() {
         }
     }
 
-    /** 解析并显示内容 */
+    /** 解析文件，生成"生词列表"（文件里出现、但不在词库中的单词） */
     private fun loadContent(content: String, fileName: String) {
         currentFileName = fileName
-        val parser = SubtitleParserFactory.getParser(fileName)
+        currentEntries = SubtitleParserFactory.getParser(fileName).parse(content)
 
-        if (parser == null) {
-            Toast.makeText(this, "不支持的文件格式: $fileName", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        currentEntries = parser.parse(content)
         if (currentEntries.isEmpty()) {
             Toast.makeText(this, "文件内容为空", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 隐藏空状态提示，显示阅读器内容
-        binding.layoutEmptyHint.visibility = View.GONE
-        binding.readerView.visibility = View.VISIBLE
+        supportActionBar?.title = fileName
+        refreshWordList(scrollToTop = true)
+        Toast.makeText(this, "已加载: $fileName", Toast.LENGTH_SHORT).show()
+    }
 
-        // 每段展示完整信息：序号 + 时间码 / 原文 / 译文
-        val blocks = currentEntries.map { entry ->
-            ReaderBlock(
-                meta = if (entry.hasTimeCode) "#${entry.index}  ${entry.timeCodeRange()}" else "",
-                text = entry.text,
-                translation = entry.translation
+    /**
+     * 重新生成生词列表。
+     *
+     * 生词 = 文件里出现过、但不在词库中的单词，按出现次数降序；
+     * 用户点「加入词库」后也会重新调用，让该词立刻从列表里消失。
+     */
+    private fun refreshWordList(scrollToTop: Boolean = false) {
+        val entries = currentEntries
+        if (entries.isEmpty()) return
+
+        val scrollY = if (scrollToTop) 0 else binding.scrollReader.scrollY
+        binding.tvFileInfo.visibility = View.VISIBLE
+        binding.tvFileInfo.text = "正在分析生词…"
+
+        lifecycleScope.launch {
+            // 抽词与过滤都在后台线程；首次还会加载词表与不规则表
+            val (distinct, unknown) = withContext(Dispatchers.IO) {
+                val words = WordExtractor.analyze(
+                    entries.asSequence().flatMap { sequenceOf(it.text, it.translation) }
+                )
+                words.size to WordRepository.filterUnknown(words)
+            }
+            renderWordList(distinct, unknown)
+            binding.scrollReader.scrollTo(0, scrollY)
+        }
+    }
+
+    /**
+     * 渲染生词列表：
+     * 每个生词三行 —— 行首是「序号/总数」与出现次数，中间是单词本身，
+     * 下面紧挨着它在原文中第一次出现的句子（当上下文）。
+     */
+    private fun renderWordList(distinct: Int, unknown: List<UnknownWord>) {
+        if (unknown.isEmpty()) {
+            // 文件里的词全都在词库中：不显示列表，只给一句提示
+            binding.readerView.visibility = View.GONE
+            binding.tvEmptyHint.text = "文件里的单词都已经在词库中了"
+            binding.layoutEmptyHint.visibility = View.VISIBLE
+        } else {
+            binding.readerView.visibility = View.VISIBLE
+            binding.layoutEmptyHint.visibility = View.GONE
+            binding.readerView.setBlocks(
+                unknown.mapIndexed { index, item ->
+                    ReaderBlock(
+                        meta = buildString {
+                            append('#').append(index + 1).append('/').append(unknown.size)
+                            if (item.count > 1) append("  ×").append(item.count)
+                        },
+                        text = item.word,
+                        translation = item.sentence
+                    )
+                }
             )
         }
-        binding.readerView.setBlocks(blocks)
 
-        // 换文件后回到顶部
-        binding.scrollReader.scrollTo(0, 0)
+        binding.tvFileInfo.text =
+            "生词 ${unknown.size} · 全文 ${distinct} 个不同单词 · ${currentEntries.size} 段"
+    }
 
-        // 更新标题
-        supportActionBar?.title = fileName
+    /** 把右侧查询面板里的当前内容加入词库，并同步刷新左侧生词列表 */
+    private fun addToWordDatabase(text: String) {
+        lifecycleScope.launch {
+            val added = withContext(Dispatchers.IO) { WordRepository.add(text) }
+            lookupPanel.refreshAddButtonState()
 
-        // 统计信息
-        val wordCount = currentEntries
-            .joinToString(" ") { it.text }
-            .split(Regex("\\s+"))
-            .count { it.isNotBlank() }
-        val hasTranslation = currentEntries.any { it.translation.isNotBlank() }
-        binding.tvFileInfo.text = buildString {
-            append("${currentEntries.size} 段 · $wordCount 词")
-            if (hasTranslation) append(" · 双语")
+            Toast.makeText(
+                this@ReaderActivity,
+                if (added) "已加入词库：${text.trim()}" else "词库里已经有它了",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            if (added) refreshWordList()
         }
-        binding.tvFileInfo.visibility = View.VISIBLE
-
-        Toast.makeText(this, "已加载: $fileName", Toast.LENGTH_SHORT).show()
     }
 
     /** 从 URI 提取文件名 */
@@ -458,6 +505,14 @@ class ReaderActivity : AppCompatActivity() {
     }
 
     private companion object {
+        /**
+         * Documents 目录里按"文本文件"列出的扩展名。
+         * 解析器本身不挑扩展名（不认识的一律按纯文本处理），这里只是过滤显示范围。
+         */
+        val TEXT_FILE_EXTENSIONS = listOf(
+            "txt", "text", "srt", "vtt", "ass", "md", "log", "csv", "json"
+        )
+
         /** 左栏默认占分栏总宽度的比例 */
         const val DEFAULT_LEFT_RATIO = 0.6f
 

@@ -104,6 +104,23 @@
                     android:padding="5dp"
                     android:src="@android:drawable/ic_media_play"
                     android:visibility="invisible" />
+
+                <!-- 把当前查询的词加入词库：加入后左侧生词列表里不会再出现它 -->
+                <TextView
+                    android:id="@+id/btn_lookup_add"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_btn_secondary"
+                    android:clickable="true"
+                    android:contentDescription="加入词库"
+                    android:focusable="true"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    android:text="加入词库"
+                    android:textColor="#666666"
+                    android:textSize="12sp"
+                    android:visibility="invisible" />
             </LinearLayout>
 
             <!-- 音标学习卡：英/美音标 + 音素拆分 + 发音要领 -->

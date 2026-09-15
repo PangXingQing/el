@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.englishstudy.app.api.AppTtsManager
 import com.englishstudy.app.util.AppSettings
 import com.englishstudy.app.util.SampleFileExtractor
+import com.englishstudy.app.words.WordRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,6 +25,15 @@ class EnglishStudyApp : Application() {
 
         // 初始化 TTS 语音引擎
         AppTtsManager.init(this)
+
+        // 词库（已知单词表）：init 只准备数据库对象，不读盘
+        WordRepository.init(this)
+
+        // 后台预热词库，避免首次分析生词时在界面上等建库
+        // （首次运行会建库并导入 assets 里的默认词表，约 8000 词）
+        CoroutineScope(Dispatchers.IO).launch {
+            WordRepository.warmUp()
+        }
 
         // 在后台解压示例文件到 Documents 目录
         CoroutineScope(Dispatchers.IO).launch {

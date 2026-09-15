@@ -12,6 +12,7 @@ import com.englishstudy.app.R
 import com.englishstudy.app.api.AppTtsManager
 import com.englishstudy.app.api.BaiduTranslator
 import com.englishstudy.app.api.Translator
+import com.englishstudy.app.words.WordRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,6 +35,7 @@ class LookupPanel(
     private val tvTranslation = root.findViewById<TextView>(R.id.tv_lookup_translation)
     private val ipaCard = IpaCard(root.findViewById(R.id.ipa_card))
     private val btnSpeak = root.findViewById<AppCompatImageView>(R.id.btn_lookup_speak)
+    private val btnAddWord = root.findViewById<TextView>(R.id.btn_lookup_add)
     private val loadingView = root.findViewById<View>(R.id.layout_lookup_loading)
 
     private val translator: Translator = BaiduTranslator()
@@ -46,6 +48,12 @@ class LookupPanel(
 
     /** 用户在面板里主动点「查询」时回调，由 Activity 决定后续动作（显示信息 + 打开网页） */
     var onSubmit: ((String) -> Unit)? = null
+
+    /**
+     * 点「加入词库」时回调，参数是当前查询内容。
+     * 加入完成后由 Activity 调 [refreshAddButtonState] 更新按钮状态。
+     */
+    var onAddWord: ((String) -> Unit)? = null
 
     init {
         root.findViewById<View>(R.id.btn_lookup_query).setOnClickListener {
@@ -73,6 +81,14 @@ class LookupPanel(
 
         btnSpeak.setOnClickListener {
             if (currentText.isNotBlank()) tts.speak(currentText)
+        }
+
+        // 把当前查询的词加入词库：之后它不会再出现在左侧的生词列表里
+        btnAddWord.setOnClickListener {
+            val word = currentText.trim()
+            if (word.isEmpty()) return@setOnClickListener
+            hideKeyboard()
+            onAddWord?.invoke(word)
         }
     }
 
@@ -106,6 +122,7 @@ class LookupPanel(
         tvTranslation.setTextColor(TRANSLATION_COLOR)
         ipaCard.hide()
         btnSpeak.visibility = View.VISIBLE
+        updateAddButtonState(query)
         loadingView.visibility = View.VISIBLE
 
         currentJob?.cancel()
@@ -129,7 +146,30 @@ class LookupPanel(
         tvTranslation.setTextColor(PLACEHOLDER_COLOR)
         tvTranslation.text = placeholderText
         btnSpeak.visibility = View.INVISIBLE
+        btnAddWord.visibility = View.INVISIBLE
         loadingView.visibility = View.GONE
+    }
+
+    /** 加入词库成功后由 Activity 调用，刷新「加入词库」按钮的状态 */
+    fun refreshAddButtonState() {
+        updateAddButtonState(currentText)
+    }
+
+    /**
+     * 「加入词库」按钮：已收录的词把按钮置灰，避免重复添加。
+     * 词库在应用启动时已预热到内存缓存，这里读缓存，不占主线程 IO。
+     */
+    private fun updateAddButtonState(word: String) {
+        if (word.isBlank()) {
+            btnAddWord.visibility = View.INVISIBLE
+            return
+        }
+
+        val known = WordRepository.isKnown(word)
+        btnAddWord.visibility = View.VISIBLE
+        btnAddWord.isEnabled = !known
+        btnAddWord.text = if (known) "已在词库" else "加入词库"
+        btnAddWord.alpha = if (known) 0.45f else 1f
     }
 
     private companion object {

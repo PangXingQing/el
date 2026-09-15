@@ -310,7 +310,7 @@ class InteractiveReaderView @JvmOverloads constructor(
         displayText.clearSpans()
 
         if (blocks.isEmpty()) {
-            displayText.append("请打开一个字幕文件开始阅读")
+            displayText.append("请打开一个文本文件开始阅读")
             return
         }
 
@@ -333,11 +333,11 @@ class InteractiveReaderView @JvmOverloads constructor(
                 displayText.append("\n")
             }
 
-            // 译文：次要颜色
+            // 附加内容（生词列表里的原文句子）：次要颜色 + 略小字号
             if (block.translation.isNotBlank()) {
                 val start = displayText.length
                 displayText.append(block.translation.trim())
-                applyBlockSpan(start, displayText.length, TRANSLATION_COLOR, 1f)
+                applyBlockSpan(start, displayText.length, TRANSLATION_COLOR, SECONDARY_SIZE_SCALE)
             }
         }
 
@@ -448,7 +448,8 @@ class InteractiveReaderView @JvmOverloads constructor(
         val META_COLOR: Int = Color.parseColor("#9E9E9E")
         const val META_SIZE_SCALE = 0.75f
 
-        /** 译文：中等灰色，视觉上退到原文之后 */
+        /** 附加内容（生词下方的原文句子）：中等灰色 + 略小字号，视觉上退到单词之后 */
         val TRANSLATION_COLOR: Int = Color.parseColor("#7A7A7A")
+        const val SECONDARY_SIZE_SCALE = 0.85f
     }
 }
